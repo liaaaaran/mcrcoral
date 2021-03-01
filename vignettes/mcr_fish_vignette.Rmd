@@ -1,0 +1,69 @@
+---
+title: "mcr_fish_vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{mcr_fish_vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mcrcoral)
+library(tidyverse)
+library(ggplot2)
+library(ggridges)
+library(janitor)
+```
+
+Should I put this in initial documentation?
+```{r}
+# clean dataset using janitor package
+mcr_clean <- mcrcoral::mcr_fish %>%
+  clean_names()
+```
+
+The following vignette shows us trends of live coral over time: clearly, as the climate crisis intensifies, we are experiencing a rapid decrease in coral. However, note how when we don't plot by site, it seems as if there is an increase in live coral starting in 2011. If we do further visualization, however, we can observe that this observation might be a little too hopeful. While there may not be a decrease in coral populations now, it seems that it has plateaus, and not risen, and in some cases continues to fall.
+This is a good example of how different visualizations can lead us to different conclusions. We can see that the higher amount of coral in some sights incorrectly weighs the overall live coral rates, and can lead us to different conclusions. 
+```{r}
+# mean live coral over time
+ggplot(mcr_clean, aes(year, mean_live_coral)) + 
+  geom_bar(stat = 'identity', fill = colors()[128]) + 
+  scale_y_continuous() + 
+  theme_bw() + 
+  labs(title = "Mean Live Coral Over Time", 
+        x = "Year", 
+        y = "Mean Live Coral")
+
+# shows the trend of live coral over time, by SITE 
+ggplot(data = mcr_clean, aes(x = year, y = mean_live_coral)) + 
+  geom_line(aes(color = site)) + 
+  theme_bw() + 
+  labs(title = "Mean Live Coral Over Time by Site", 
+        x = "Year", 
+        y = "Mean Live Coral")
+```
+## Exploratory Analysis for Clustering
+Using the ridge plot, we can see that there are possible clusters in the data. We can see this through the use of ridges, which indicate there might be different groups which explain the different distribution of curves. There are possibly subgroups in this dataset which we want to identify!
+```{r}
+# center and scale data
+mcr_num = mcr_clean[, 3:11]
+mcr_std = mcr_num %>% scale() %>% as.data.frame()
+
+# ridge plot
+mcr_std %>%
+  gather(key = 'variable', value = 'value', 1:9) %>%
+  ggplot(aes(y = variable, x = value)) + 
+  geom_density_ridges(bandwidth = 0.2) + 
+  theme_minimal() + 
+  xlim(c(-3,3)) + 
+  labs(y = '')
+```
+Let's try a ridge plot with clusters: this way, we can see if there is any meaninful distinction between the subgroups. 
+
