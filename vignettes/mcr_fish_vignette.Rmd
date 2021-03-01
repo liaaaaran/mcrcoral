@@ -20,6 +20,8 @@ library(tidyverse)
 library(ggplot2)
 library(ggridges)
 library(janitor)
+library(dendextend)
+library(ape)
 ```
 
 Should I put this in initial documentation?
@@ -49,6 +51,10 @@ ggplot(data = mcr_clean, aes(x = year, y = mean_live_coral)) +
         x = "Year", 
         y = "Mean Live Coral")
 ```
+NOTE: 
+For sites 4 and 5, there seems to be a continued decrease despite an increase in live coral for other sites. 
+(Domain expertise): What variables should I explore that could be the cause of this? I could split the dataset into 2, and try and run analyses on ? some fish variables ? Is this caused by the fish, or is fish an effect of this?
+
 ## Exploratory Analysis for Clustering
 Using the ridge plot, we can see that there are possible clusters in the data. We can see this through the use of ridges, which indicate there might be different groups which explain the different distribution of curves. There are possibly subgroups in this dataset which we want to identify!
 ```{r}
@@ -65,5 +71,51 @@ mcr_std %>%
   xlim(c(-3,3)) + 
   labs(y = '')
 ```
-Let's try a ridge plot with clusters: this way, we can see if there is any meaninful distinction between the subgroups. 
+Let's try a ridge plot with clusters: this way, we can see if there is any meaningful distinction between the subgroups. We can see that there is a clear distinction of subgroups in coral dwellers, amd corallivore, and mean total coral. 
+```{r}
+kmeans_out <- kmeans(mcr_std, centers = 3, nstart = 5)
+clusters <- factor(kmeans_out$cluster,
+                labels = paste('cluster', 1:3))
+centers <- kmeans_out$centers
+
+# ridge plot with clusters 
+mcr_std %>%
+  mutate(cluster = clusters) %>%
+  gather(key = 'variable', value = 'value', 1:9) %>%
+  ggplot(aes(y = variable, x = value)) + 
+  geom_density_ridges(aes(fill = cluster),
+                      bandwidth = 0.2,
+                      alpha = 0.5) + 
+  theme_minimal() + 
+  xlim(c(-3,3)) + 
+  labs(y = '')
+```
+Possible: PCA and plot clusters onto PCA, interpret PC's. Is this doing too much?
+
+Now, visualizations of dendograms so we can see which observations are closely related!
+NOTE: 
+Maybe there is a cool way to see if there is a relationship between observations in clusters and if they are related by site? Or year?
+NOTE:
+Working on coloring the dendograms by color
+```{r}
+# compute distances between points
+d_mx <- dist(mcr_std, method = 'euclidean')
+
+#hierarchical clustering
+hclust_out <- hclust(d_mx, method = 'ward.D')
+
+plot(hclust_out)
+
+n.cluster = 3
+plot(as.phylo(hclust_out), type = 'fan', tip.color = (1:n.cluster + 1)[cutree(hclust_out, n.cluster)], 
+     cex = 0.8)
+
+# cut at 3 clusters
+clusters <- cutree(hclust_out, k = 3) %>%
+  factor(labels = paste('cluster', 1:3))
+
+# count number of data points per cluster
+tibble(clusters) %>% count(clusters)
+```
+NOTE: Split the clusters of observations into their own datasets, try and run analysis? Again, not sure if we are doing surface level visualizations or if more in-depth analysis is what we want here. If the latter, some intuition from someone with domain expertise would be awesome so I can figure out where to go next!
 
