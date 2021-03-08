@@ -24,7 +24,6 @@ library(dendextend)
 library(ape)
 ```
 
-Should I put this in initial documentation?
 ```{r}
 # clean dataset using janitor package
 mcr_clean <- mcrcoral::mcr_fish %>%
@@ -33,6 +32,7 @@ mcr_clean <- mcrcoral::mcr_fish %>%
 
 The following vignette shows us trends of live coral over time: clearly, as the climate crisis intensifies, we are experiencing a rapid decrease in coral. However, note how when we don't plot by site, it seems as if there is an increase in live coral starting in 2011. If we do further visualization, however, we can observe that this observation might be a little too hopeful. While there may not be a decrease in coral populations now, it seems that it has plateaus, and not risen, and in some cases continues to fall.
 This is a good example of how different visualizations can lead us to different conclusions. We can see that the higher amount of coral in some sights incorrectly weighs the overall live coral rates, and can lead us to different conclusions. 
+### Live Coral Over Time
 ```{r}
 # mean live coral over time
 ggplot(mcr_clean, aes(year, mean_live_coral)) + 
@@ -42,7 +42,8 @@ ggplot(mcr_clean, aes(year, mean_live_coral)) +
   labs(title = "Mean Live Coral Over Time", 
         x = "Year", 
         y = "Mean Live Coral")
-
+```
+```{r}
 # shows the trend of live coral over time, by SITE 
 ggplot(data = mcr_clean, aes(x = year, y = mean_live_coral)) + 
   geom_line(aes(color = site)) + 
@@ -55,67 +56,26 @@ NOTE:
 For sites 4 and 5, there seems to be a continued decrease despite an increase in live coral for other sites. 
 (Domain expertise): What variables should I explore that could be the cause of this? I could split the dataset into 2, and try and run analyses on ? some fish variables ? Is this caused by the fish, or is fish an effect of this?
 
-## Exploratory Analysis for Clustering
-Using the ridge plot, we can see that there are possible clusters in the data. We can see this through the use of ridges, which indicate there might be different groups which explain the different distribution of curves. There are possibly subgroups in this dataset which we want to identify!
+### Mean Coral 
 ```{r}
-# center and scale data
-mcr_num = mcr_clean[, 3:11]
-mcr_std = mcr_num %>% scale() %>% as.data.frame()
-
-# ridge plot
-mcr_std %>%
-  gather(key = 'variable', value = 'value', 1:9) %>%
-  ggplot(aes(y = variable, x = value)) + 
-  geom_density_ridges(bandwidth = 0.2) + 
-  theme_minimal() + 
-  xlim(c(-3,3)) + 
-  labs(y = '')
+mcr_site <- mcr_clean %>%
+  group_by(site) %>%
+  mutate(avg_pisc=mean(piscivore_primarily),
+         avg_total=mean(mean_total_coral),
+         avg_live=mean(mean_live_coral))
 ```
-Let's try a ridge plot with clusters: this way, we can see if there is any meaningful distinction between the subgroups. We can see that there is a clear distinction of subgroups in coral dwellers, amd corallivore, and mean total coral. 
+
 ```{r}
-kmeans_out <- kmeans(mcr_std, centers = 3, nstart = 5)
-clusters <- factor(kmeans_out$cluster,
-                labels = paste('cluster', 1:3))
-centers <- kmeans_out$centers
-
-# ridge plot with clusters 
-mcr_std %>%
-  mutate(cluster = clusters) %>%
-  gather(key = 'variable', value = 'value', 1:9) %>%
-  ggplot(aes(y = variable, x = value)) + 
-  geom_density_ridges(aes(fill = cluster),
-                      bandwidth = 0.2,
-                      alpha = 0.5) + 
-  theme_minimal() + 
-  xlim(c(-3,3)) + 
-  labs(y = '')
+# mcr_clean %>%
+#   ggplot(aes(x=piscivore_primarily)) +
+# #  geom_line(aes(y = piscivore_primarily)) +
+#   geom_line(aes(y = mean_live_coral), data = mcr_annual, linetype = "dotdash")
 ```
-Possible: PCA and plot clusters onto PCA, interpret PC's. Is this doing too much?
 
-Now, visualizations of dendograms so we can see which observations are closely related!
-NOTE: 
-Maybe there is a cool way to see if there is a relationship between observations in clusters and if they are related by site? Or year?
-NOTE:
-Working on coloring the dendograms by color
 ```{r}
-# compute distances between points
-d_mx <- dist(mcr_std, method = 'euclidean')
-
-#hierarchical clustering
-hclust_out <- hclust(d_mx, method = 'ward.D')
-
-plot(hclust_out)
-
-n.cluster = 3
-plot(as.phylo(hclust_out), type = 'fan', tip.color = (1:n.cluster + 1)[cutree(hclust_out, n.cluster)], 
-     cex = 0.8)
-
-# cut at 3 clusters
-clusters <- cutree(hclust_out, k = 3) %>%
-  factor(labels = paste('cluster', 1:3))
-
-# count number of data points per cluster
-tibble(clusters) %>% count(clusters)
+mcr_clean %>%
+  ggplot(aes(x= piscivore_primarily, y = mean_live_coral)) +
+  geom_point(aes(color = year))
 ```
-NOTE: Split the clusters of observations into their own datasets, try and run analysis? Again, not sure if we are doing surface level visualizations or if more in-depth analysis is what we want here. If the latter, some intuition from someone with domain expertise would be awesome so I can figure out where to go next!
+
 

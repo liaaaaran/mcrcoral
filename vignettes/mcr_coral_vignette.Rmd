@@ -1,0 +1,139 @@
+---
+title: "mcr_coral_vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{mcr_coral_vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mcrcoral)
+library(janitor)
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+# clean dataset using janitor package
+mcr_coral <- mcrcoral::mcr_coral %>%
+  clean_names() 
+```
+## Mean Live Coral Compared to Predictors
+
+```{r}
+mcr_coral %>%
+  select(year, percent_alive) %>%
+  group_by(year) %>%
+  summarize(avg_live = mean(percent_alive, na.rm = TRUE)) %>%
+  ggplot(aes(year, avg_live)) +
+  geom_line(alpha = 0.7) + 
+  geom_smooth(
+    method = loess, # polynomial regression
+    se = FALSE,
+    color = "blue",
+    linetype = "dashed"
+  ) +
+#  geom_bar(stat = 'identity', fill = colors()[128]) + 
+  scale_y_continuous() + 
+  theme_bw() + 
+  labs(title = "Mean Live Coral Over Time", 
+        x = "Year", 
+        y = "Mean Live Coral")  
+
+#annual_live
+```
+```{r}
+mcr_coral %>%
+  select(site, percent_alive) %>%
+  group_by(site) %>%
+  summarize(avg_live = mean(percent_alive, na.rm = TRUE)) %>%
+  ggplot(aes(site, avg_live)) +
+  geom_bar(stat = 'identity', fill = colors()[128]) + 
+  scale_y_continuous() + 
+  theme_bw() + 
+  labs(title = "Mean Live Coral By Site", 
+        x = "Site", 
+        y = "Mean Live Coral")
+```
+## Density of Live Coral 
+```{r}
+branch <- mcr_coral$branch_morphology %>%
+  na.omit() %>%
+  factor(levels = c(1, 2, 3),
+        labels = c("1: Tight Spacing", "2: Medium Spacing", "3: Open Spacing"))
+```
+
+```{r}
+mcr_coral %>%
+  filter(!is.na(branch_morphology)) %>%
+  ggplot(aes(x = percent_alive)) +
+  geom_density(aes(color = branch, 
+                   group = branch)) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title = "Density of Live Coral by Branch Spacing",
+       x = "Percent Alive",
+       y = "Density")
+```
+```{r}
+mcr_coral %>%
+  filter(!is.na(branch_morphology)) %>%
+  ggplot(aes(x = percent_alive)) +
+  geom_density(aes(color = site, 
+                   group = site)) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(title = "Density of Live Coral by Site",
+       x = "Percent Alive",
+       y = "Density")
+```
+## Site 5 Inspection
+## Count of Coral Colony for Site 5
+```{r}
+site5 <- mcr_coral %>%
+  filter(site == "LTER_5")
+```
+
+```{r}
+site5_coral <- site5 %>%
+  group_by(coral_number) %>%
+  count()
+
+site5_coral %>%
+  ggplot(aes(x = coral_number, y = n)) + 
+  geom_bar(stat = 'identity', fill = colors()[128]) + 
+  scale_y_continuous() + 
+  theme_bw() + 
+  labs(title = "Density of Coral Colonies in Site 5", 
+        x = "Count", 
+        y = "Coral Colony")
+```
+
+
+
+## Coral Footprint by Coral Genus
+```{r}
+genus <- mcr_coral %>%
+  filter(!is.na(coral_genus), coral_genus != '?' , area_cm2 < 750) %>%
+  ggplot(aes(x = coral_genus, y = area_cm2)) +
+  geom_boxplot(aes(x = coral_genus, y = area_cm2, color = coral_genus), alpha = 0.8, width = 0.5) +
+  theme_minimal() + 
+  labs(title = "Coral Footprint by Coral Genus",
+       y = "Area of Coral Footprint (cm)",
+       x = "Coral Genus")
+genus
+```
+
+
+
+
+
+
+
