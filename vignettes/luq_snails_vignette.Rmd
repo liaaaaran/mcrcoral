@@ -16,4 +16,106 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(mcrcoral)
+library(tidyverse)
+library(janitor)
+library(plotly)
+library(ggplot2)
 ```
+
+```{r}
+head(luq_snails)
+unique(luq_snails$year) # ex of data cleaning: coerce '2107' to '2017'
+```
+## Cleaning the Data
+```{r}
+luq_snails <- luq_snails %>%
+  clean_names() %>%
+  separate(date, sep="/", into = c("month", "day", "year")) %>%
+  mutate(year = recode(year,
+                       '2107' = '2017')) %>%
+  select(-c(comments))
+luq_snails
+```
+
+```{r}
+year_avg_dry <- luq_snails %>%
+  filter(year != 'NA' & season == 'Dry') %>%
+  group_by(year) %>%
+  summarise(totabu_avg = mean(totabu, na.rm = TRUE))
+
+year_avg_wet <- luq_snails %>%
+  filter(year != 'NA' & season == 'Wet') %>%
+  group_by(year) %>%
+  summarise(totabu_avg = mean(totabu, na.rm = TRUE))
+```
+
+
+```{r}
+luq_snails %>%
+  ggplot(aes(x = year, group = 1)) + 
+#  geom_point(aes(y = totabu, color = season), size = 0.6) +
+  geom_line(aes(y = totabu_avg), data = year_avg_dry, size = 0.8, col = 'red') +
+  geom_line(aes(y = totabu_avg), data = year_avg_wet, size = 0.8, col = 'blue')  + 
+  labs(title = "Average Total Abundance of Snails per Year by Season",
+       ylabs = "Average Abundance of Snails")
+
+```
+We can see from the histogram that abundance of snails during the seasons follows approximately the same distribution, yet there is a general trend that there are more snails during the wet seasons. 
+
+## Grouped Histogram
+Histogram of snail count by species 5 years before hurricane Georges(1993), year of Georges(1998), 5 years after Georges(2003)
+```{r}
+# group by year, total snail counts
+total_snail_wide <- luq_snails %>%
+  filter(year >= 1993 & year <= 2003) %>%
+  group_by(year) %>%
+  summarise(across(alcalt:vagocc, sum)) 
+total_snail_wide
+```
+```{r}
+# wide to long: good data science practice
+total_snail_long <- gather(total_snail_wide, species, count, alcalt:vagocc, factor_key = TRUE)
+total_snail_long
+```
+```{r}
+# interactive graph : this helps since there are so many species 
+
+#install.packages(plotly) # if you haven't installed the package
+#library(plotly)
+
+# original plot
+p <- total_snail_long %>%
+  group_by(year) %>%
+  ggplot(aes(x = year, y = count, group = species, color = species)) +
+  geom_line() 
+
+ggplotly(p)
+```
+
+This graph shows us that 'gaenig' (Gaeotis nigrolineata) has the highest resilience in frog species: their numbers return to pre-hurrican levels just a couple years after hurricane Georges. On the other hang, it seems like 'nentri' (Nenia tridens) had a sharp decrease in their numbers, which seems to have plateaued out, but is nowhere near pre-hurricane levels. The lack of observations for the other species could indicate rareness. 
+
+Do the snails have more rehabilitation during wet or dry seasons?
+```{r}
+snail_szn <- luq_snails %>%
+  filter(year >= 1993 & year <= 2003) %>%
+  group_by(year, season) %>%
+  summarise(across(alcalt:vagocc, sum)) %>%
+  gather(species, count, alcalt:vagocc) %>%
+  filter(species == 'gaenig' | species == 'nentri') 
+
+snail_szn
+```
+
+```{r}
+p <- snail_szn %>%
+  group_by(year, season) %>%
+  ggplot(aes(x = year, y = count, group = season, color = season)) +
+  geom_line() + 
+  geom_vline(xintercept = '1998', linetype="dashed", 
+                color = "red") + 
+  facet_wrap( ~ species)
+p + ggtitle('Comparing 2 Snail Types Resilience in Seasons')
+```
+
+'Gaenig', which has high resilience as seen in the previous graph, seems to have returned to their prevous numbers during the *dry* season surprisngly, despite previous trends of the wet season. On the other hand, we can see that traditionally 'nentri' thrives during the wet season, and we can see this trend slowly start to continue after the devastation of the hurricane. 
+
