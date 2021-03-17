@@ -25,110 +25,115 @@ library(dplyr)
 ```{r}
 # clean dataset using janitor package
 mcr_coral <- mcrcoral::mcr_coral %>%
-  clean_names() 
-```
-## Mean Live Coral Compared to Predictors
+  clean_names() %>%
+  select(-notes) %>%
+  mutate(coral_genus = recode(
+    coral_genus,
+    "ACR" = "Acropora",
+    "POC" = "Pocillopora"
+  )) %>%
+  mutate(region = recode(
+    site,
+    "LTER_1" = "North",
+    "LTER_2" = "North",
+    "LTER_3" = "SouthEast",
+    "LTER_4" = "SouthEast",
+    "LTER_5" = "SouthWest",
+    "LTER_6" = "SouthWest"
+  ),
+  year = as.factor(year)) %>%
+  na.omit()
 
+```
+
+## Mean Live Coral Compared to Predictors
+North shore has highest recovery rates (site 1&2), while East shore has lowest initial recovery rates (sites 3&4)
 ```{r}
 mcr_coral %>%
-  select(year, percent_alive) %>%
-  group_by(year) %>%
-  summarize(avg_live = mean(percent_alive, na.rm = TRUE)) %>%
+#  select(year, percent_alive) %>%
+  group_by(year, site) %>%
+  summarise(avg_live = mean(percent_alive, na.rm = TRUE)) %>%
+  ungroup %>%
   ggplot(aes(year, avg_live)) +
-  geom_line(alpha = 0.7) + 
-  geom_smooth(
-    method = loess, # polynomial regression
-    se = FALSE,
-    color = "blue",
-    linetype = "dashed"
-  ) +
+  geom_point() + 
+#  geom_path() +
+  facet_wrap(~site) +
 #  geom_bar(stat = 'identity', fill = colors()[128]) + 
   scale_y_continuous() + 
   theme_bw() + 
-  labs(title = "Mean Live Coral Over Time", 
+  labs(title = "Average Percent of Live Coral Per Year", 
         x = "Year", 
-        y = "Mean Live Coral")  
+        y = "Percentage of Live Coral")  
 
 #annual_live
 ```
+This plot further confirms what the above shows us: North shore has the highest recovery rates.
+NOTE: There may be biases due to inconsistencies in the observations collected.
 ```{r}
-mcr_coral %>%
-  select(site, percent_alive) %>%
-  group_by(site) %>%
-  summarize(avg_live = mean(percent_alive, na.rm = TRUE)) %>%
-  ggplot(aes(site, avg_live)) +
-  geom_bar(stat = 'identity', fill = colors()[128]) + 
-  scale_y_continuous() + 
-  theme_bw() + 
-  labs(title = "Mean Live Coral By Site", 
-        x = "Site", 
-        y = "Mean Live Coral")
+# mcr_coral %>%
+#   na.omit() %>%
+#   filter(year == 2006 | year == 2011) %>%
+# #  select(region, percent_alive) %>%
+#   group_by(year, region) %>%
+#   summarize(avg_live = mean(percent_alive, na.rm = TRUE)) %>%
+#   ggplot(aes(region, avg_live)) +
+# #  geom_point() +
+#   geom_bar(stat = 'identity', fill = colors()[128]) + 
+#   facet_wrap(~year) + 
+#   scale_y_continuous() + 
+#   theme_bw() + 
+#   labs(title = "Percent Average of Live Coral By Region", 
+#         x = "Region", 
+#         y = "Average Live Coral")
 ```
-## Density of Live Coral 
-```{r}
-branch <- mcr_coral$branch_morphology %>%
-  na.omit() %>%
-  factor(levels = c(1, 2, 3),
-        labels = c("1: Tight Spacing", "2: Medium Spacing", "3: Open Spacing"))
-```
-
-```{r}
-mcr_coral %>%
-  filter(!is.na(branch_morphology)) %>%
-  ggplot(aes(x = percent_alive)) +
-  geom_density(aes(color = branch, 
-                   group = branch)) +
-  theme(axis.text.x = element_text(angle = 90)) + 
-  labs(title = "Density of Live Coral by Branch Spacing",
-       x = "Percent Alive",
-       y = "Density")
-```
-```{r}
-mcr_coral %>%
-  filter(!is.na(branch_morphology)) %>%
-  ggplot(aes(x = percent_alive)) +
-  geom_density(aes(color = site, 
-                   group = site)) +
-  theme(axis.text.x = element_text(angle = 90)) + 
-  labs(title = "Density of Live Coral by Site",
-       x = "Percent Alive",
-       y = "Density")
-```
-## Site 5 Inspection
-## Count of Coral Colony for Site 5
-```{r}
-site5 <- mcr_coral %>%
-  filter(site == "LTER_5")
-```
-
-```{r}
-site5_coral <- site5 %>%
-  group_by(coral_number) %>%
-  count()
-
-site5_coral %>%
-  ggplot(aes(x = coral_number, y = n)) + 
-  geom_bar(stat = 'identity', fill = colors()[128]) + 
-  scale_y_continuous() + 
-  theme_bw() + 
-  labs(title = "Density of Coral Colonies in Site 5", 
-        x = "Count", 
-        y = "Coral Colony")
-```
-
 
 
 ## Coral Footprint by Coral Genus
+Plotted average area of different coral to observe how area was affected by cyclone. As we can see, Acropora remained about the same, while the Pocillopora. Both of these are branching corals, so maybe we can identify a difference in branch morphology. 
 ```{r}
 genus <- mcr_coral %>%
   filter(!is.na(coral_genus), coral_genus != '?' , area_cm2 < 750) %>%
-  ggplot(aes(x = coral_genus, y = area_cm2)) +
+  ggplot(aes(x = year, y = area_cm2)) +
   geom_boxplot(aes(x = coral_genus, y = area_cm2, color = coral_genus), alpha = 0.8, width = 0.5) +
   theme_minimal() + 
+#  facet_wrap(~year) +
   labs(title = "Coral Footprint by Coral Genus",
        y = "Area of Coral Footprint (cm)",
        x = "Coral Genus")
 genus
+```
+
+```{r}
+mcr_coral1 <- mcr_coral1 %>%
+  clean_names() %>%
+  separate(date, sep="-", into = c("year", "month"))
+```
+
+Based on research, we know Pocillopora has the greatest recovery rate, and the most live coral. From the graph shown, we can see that there is almost a complete loss of coral life after the cyclone in 2010. The most rapid recovery seems to be the north shore (sites 1 & 2), with the least rapid recovery on the east shore (sites 3 & 4)
+
+```{r}
+poc_coral <- mcr_coral1 %>%
+  na.omit() %>%
+  filter(taxonomy_substrate_functional_group == 'Pocillopora')
+```
+## Recovery Rates of Coral Genus
+Using a new dataset, we now can explore the recovery rates:: this data goes up till 2015. The trend still holds true: North shore has highest recovery rates, East shore has lowest recovery rates. This plot combines what the previous 2 plots showed us in a morecohesive manner, showing us how data visualization can be intuitive once domain context is applied. 
+```{r}
+rec_rate <- mcr_coral1 %>%
+  na.omit() %>%
+  filter(taxonomy_substrate_functional_group == 'Pocillopora' | taxonomy_substrate_functional_group == 'Acropora') %>%
+  group_by(year, site, taxonomy_substrate_functional_group) %>%
+  summarise(cover = mean(percent_cover)) %>%
+#  ungroup %>%
+  ggplot(aes(x=year, y = cover)) +
+  geom_point(aes(col = taxonomy_substrate_functional_group)) +
+#  geom_segment() +
+  facet_wrap(~site) + 
+  theme_bw() +
+  labs(title = "Recovery Rate of Coral Genus by Site",
+       ylab = "Percent of Coverage")
+rec_rate
+#rec_rate + theme(legend.title = "Coral Genus")
 ```
 
 
