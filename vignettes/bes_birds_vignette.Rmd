@@ -1,0 +1,25 @@
+---
+title: "bes_birds_vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{bes_birds_vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mcrcoral)
+library(tidyverse)
+```
+
+```{r}
+head(bes_birds)
+```
+

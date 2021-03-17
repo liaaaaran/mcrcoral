@@ -24,15 +24,15 @@ library(ggplot2)
 
 ```{r}
 head(luq_snails)
-unique(luq_snails$year) # ex of data cleaning: coerce '2107' to '2017'
+unique(luq_snails$year) # ex of data cleaning: coerce '2107' to '2017':: this doesn't work tho but why
 ```
 ## Cleaning the Data
 ```{r}
 luq_snails <- luq_snails %>%
   clean_names() %>%
   separate(date, sep="/", into = c("month", "day", "year")) %>%
-  mutate(year = recode(year,
-                       '2107' = '2017')) %>%
+#  mutate(year = recode(year,
+#                       '2107' = '2017')) %>%
   select(-c(comments))
 luq_snails
 ```
@@ -87,7 +87,8 @@ total_snail_long
 p <- total_snail_long %>%
   group_by(year) %>%
   ggplot(aes(x = year, y = count, group = species, color = species)) +
-  geom_line() 
+  geom_line()  +
+  labs(title = 'Snail Count per Year by Species')
 
 ggplotly(p)
 ```
@@ -117,5 +118,5 @@ p <- snail_szn %>%
 p + ggtitle('Comparing 2 Snail Types Resilience in Seasons')
 ```
 
-'Gaenig', which has high resilience as seen in the previous graph, seems to have returned to their prevous numbers during the *dry* season surprisngly, despite previous trends of the wet season. On the other hand, we can see that traditionally 'nentri' thrives during the wet season, and we can see this trend slowly start to continue after the devastation of the hurricane. 
+'Gaenig', which has high resilience as seen in the previous graph, seems to have returned to their previous numbers during the *dry* season surprisingly, despite previous trends of the wet season. On the other hand, we can see that traditionally 'nentri' thrives during the wet season, and we can see this trend slowly start to continue after the devastation of the hurricane. 
 
