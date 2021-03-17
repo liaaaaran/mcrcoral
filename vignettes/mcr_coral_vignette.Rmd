@@ -56,7 +56,7 @@ mcr_coral %>%
   ungroup %>%
   ggplot(aes(year, avg_live)) +
   geom_point() + 
-#  geom_path() +
+#  geom_path(aes(year, avg_live)) +
   facet_wrap(~site) +
 #  geom_bar(stat = 'identity', fill = colors()[128]) + 
   scale_y_continuous() + 
