@@ -17,9 +17,72 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(mcrcoral)
 library(tidyverse)
+library(janitor)
+library(tidyr)
+library(plotly)
 ```
 
 ```{r}
 head(bes_birds)
 ```
+## Cleaning the Data
+```{r}
+bes_birds <- bes_birds %>%
+  clean_names() %>%
+  select(-c(visit, datej:startmin, x0_5m:x40_m, ft:notes)) %>%
+  mutate(wind_mph = wind_mph*10)
+bes_birds
+```
+```{r}
+# count of birds per species 
+species_ct <- bes_birds %>%
+  na.omit() %>%
+  group_by(species) %>%
+#  na.omit() %>%
+  summarise(across(total, sum)) %>%
+  arrange(desc(total))
+
+species_ct
+```
+
+```{r}
+sub <- species_ct[1:10,]
+species_sub <- bes_birds %>%
+  group_by(species) %>%
+  filter(species %in% c('EUST', 'HOSP', 'RODO', 'CHSW', 'AMRO', 'COGR', 'CAGO', 'MODO', 'NOCA', 'HOFI'))
+```
+## Exploratory Analysis:: Species Count
+```{r}
+sub %>%
+  ggplot(aes(x = reorder(species, -total), y = total)) + 
+  geom_bar(stat = 'identity', fill = colors()[128]) + 
+  labs(title = 'Most Common Birds Spotted') +
+  xlab('Species')
+```
+
+Under what conditions are the most birds observed?
+```{r}
+p <- species_sub %>%
+  filter(species != 'CAGO') %>%
+  group_by(species, temp_f) %>%
+  summarise(avg_total = mean(total, na.rm = TRUE)) %>%
+  ggplot(aes(x = temp_f, y = avg_total, group = species, color = species)) + 
+  geom_line() +
+  labs(title = 'Average Total Birds Spotted by Temperature')
+p
+```
+
+```{r}
+bes_birds %>%
+  group_by(wind_mph) %>%
+  summarise(total_ct = sum(total, na.rm = TRUE)) %>%
+  na.omit() %>%
+  ggplot(aes(x = wind_mph, y = total_ct)) + 
+  geom_bar(stat = 'identity', fill = colors()[128]) +
+  labs(title = 'Total Birds Spotted by Wind Speed')
+```
+
+
+
+
 
